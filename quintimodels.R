@@ -40,6 +40,17 @@ plot.xall <- function(new.dev) {
 
 }
 
+plot.dall <- function(new.dev) {
+  if(missing(new.dev)){new.dev=FALSE}
+  plot.dgrow("cnr",new.dev)
+  plot.dgrow("inv1")
+  plot.dgrow("inv2")
+  plot.dgrow("sugra")
+  plot.dgrow("exp2")
+  plot.dgrow("as")
+
+}
+
 plot.w <- function(model.name,new.dev) {
 
  a=seq(-2,0,0.01)
@@ -84,6 +95,31 @@ plot.xfun <- function(model.name,new.dev) {
 	
 }
 
+plot.dgrow <- function(model.name,new.dev) {
+
+ a <- seq(0.001, 1, length = 301)
+
+ if(missing(new.dev)){new.dev=FALSE}
+ if(attr(dev.cur(),"names")== "null device" || new.dev) {
+    dev.new()
+    par(tcl=1)
+    d <- evol.grow.G(model.name)
+    d <- d/d[301]
+    plot(a, d, type = "l",
+	 xlab="a",ylab="D(a)",
+	 xaxt = "n",yaxt="n", lty=lsty[model.name,])
+    eaxis(1)#,at=c(1E-2,1E-1,1))
+    eaxis(2)#,small.mult=4)
+    eaxis(3)#,labels=FALSE,at=c(1E-2,1E-1,1))
+    eaxis(4)#,labels=FALSE)
+ } else {
+    d <- evol.grow.G(model.name)
+    d <- d/d[301]
+    lines(a,d,lty=lsty[model.name,])
+ }
+	
+}
+
 X.fun <- function(a,model.name) {
 	res=a*0.0
 	n <-length(a)
@@ -114,25 +150,26 @@ w.model <-function(a,model.name) {
    return(w.phi)
 }
 
+#integrado en el growfactor para cada modelo
 evol.grow.G <- function(model.name) {
-	parms <- c(name = model.name)
-        times <- seq(0.01, 1, length = 101)
-	xstart <- c(x1 = 0.001, x2 = 0.001) #condiciones iniciales para el factor de 
+        atimes <- seq(0.001, 1, length = 301)
+	xstart <- c(D =0.1, Dprime =1.0) #condiciones iniciales para el factor de 
 	                            #crecimiento y sus derivadas
-        out <- ode(xstart,times,dgrow.G,parms)
-
+        out <- ode(xstart,atimes,dgrow.G,model.name)
+	sld <- as.data.frame(out)
+	a=sld$time
+	dfact=sld$D*a
+	return(dfact)
 }
 
-
-dgrow.G <- function(a,yfunc,parms)
+dgrow.G <- function(a,yfunc,model.name)
 {
-         with(as.list(c(parms, yfunc)), {
-	      #se queja de que x2 es no numerico o que es character hay algo roto
-         dx1 <- 0.0#x2
-         dx2 <- 0.0#-(7/2-3/2*w.model(a,name)/(1+X.fun(a,name)))*x2/a
-	 dx2 <- 0.0# dx2 -3/2*(1-w.model(a,name))/(1+X.fun(a,name))*x1/a/a
-         res <- c(dx1, dx2)
+         with(as.list(c(yfunc)), {
+         dD <- Dprime
+         dDprime <- -(7/2-3/2*w.model(a,model.name)/(1+X.fun(a,model.name)))*Dprime/a
+	 dDprime <- dDprime -3/2*(1-w.model(a,model.name))/(1+X.fun(a,model.name))*D/a/a
+         res <- c(dD, dDprime)
          return(list(res))
        })
-
 }
+  
