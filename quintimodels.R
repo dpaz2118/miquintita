@@ -18,6 +18,22 @@ assign("lsty",lsty, envir = .GlobalEnv)
 assign("omega.mat",0.26, envir = .GlobalEnv)
 assign("H0",76, envir = .GlobalEnv)
 
+#Los H/Hl no dan igual a Ellise por un factor 0.9565217
+#parece mejorar cuando se aumenta el omega.mat, por ejemplo 0.32
+
+#Graficos generales #######################
+plot.oall <- function(new.dev) 
+{
+  if(missing(new.dev)){new.dev=FALSE}
+  plot.omega("cnr",new.dev)
+  plot.omega("inv1")
+  plot.omega("inv2")
+  plot.omega("sugra")
+  plot.omega("exp2")
+  plot.omega("as")
+  plot.omega("lcdm")
+
+}
 
 plot.wall <- function(new.dev) 
 {
@@ -66,9 +82,9 @@ plot.dall <- function(new.dev)
 
 }
 
+#Graficos individuales ######################
 plot.w <- function(model.name,new.dev) 
 {
-
  a=seq(-2,0,0.01)
  a=10.0^a
 
@@ -120,20 +136,44 @@ plot.H <- function(model.name,new.dev)
  z=1/a-1
  hz=hubble.par(a,model.name)
  hl=hubble.par(a,"lcdm")
+ #hl=sqrt(omega.mat/a/a/a+(1-omega.mat))*H0 #hubble.par(a,"lcdm")
 
  if(missing(new.dev)){new.dev=FALSE}
  if(attr(dev.cur(),"names")== "null device" || new.dev) {
     dev.new()
     par(tcl=1)
     plot(z,hz/hl , type = "l",
-	 xlab="a",ylab="X(a)",
-	 xaxt = "n",yaxt="n",lty=lsty[model.name,])
+	 xlab="z",ylab="H/Hlcdm",
+	 xaxt = "n",yaxt="n",lty=lsty[model.name,],ylim=c(0.9,1.3),xlim=c(0,10))
     eaxis(1)
     eaxis(2)
     eaxis(3,labels=FALSE)
     eaxis(4,labels=FALSE)
  } else {
     lines(z,hz/hl,lty=lsty[model.name,])
+ }
+	
+}
+
+plot.omega <- function(model.name,new.dev) 
+{
+ a=seq(-3,0,0.01)
+ a=10.0^a
+ om=omega.de(a,model.name)
+
+ if(missing(new.dev)){new.dev=FALSE}
+ if(attr(dev.cur(),"names")== "null device" || new.dev) {
+    dev.new()
+    par(tcl=1)
+    plot(a,om , type = "l",log="xy",
+	 xlab="a",ylab="omega.DE",
+	 xaxt = "n",yaxt="n",lty=lsty[model.name,],ylim=c(0.001,1.0),xlim=c(0.002,1.0))
+    eaxis(1,at=c(1E-2,1E-1,1))
+    eaxis(2,at=c(1E-3,1E-2,1E-1,1))
+    eaxis(3,labels=FALSE)
+    eaxis(4,labels=FALSE)
+ } else {
+    lines(a,om,lty=lsty[model.name,])
  }
 	
 }
@@ -148,7 +188,7 @@ plot.dgrow <- function(model.name,new.dev)
  if(attr(dev.cur(),"names")== "null device" || nuevo) {
     new.dev()
     par(tcl=1)
-    d <- evol.grow.G(model.name)
+    d <- evol.grow.G(a,model.name)
     d <- d/d[301]
     plot(a, d, type = "l",
 	 xlab="a",ylab="D(a)",
@@ -158,17 +198,28 @@ plot.dgrow <- function(model.name,new.dev)
     eaxis(3,labels=FALSE)
     eaxis(4,labels=FALSE)
  } else {
-    d <- evol.grow.G(model.name)
+    d <- evol.grow.G(a,model.name)
     d <- d/d[301]
     lines(a,d,lty=lsty[model.name,])
  }
 	
 }
 
+
+#Funciones utilizadas #######################
+
+omega.de <-function(a,model.name)
+{
+	fz <- omega.mat/(1-omega.mat)/X.fun(a,model.name)/a/a/a
+	Ez2 <- (hubble.par(a,model.name))^2/(H0^2)
+	res <- (1-omega.mat)*fz/Ez2
+	return(res)
+}
+
 hubble.par <-function(a,model.name)
 {
-	res <- omega.mat/a^3 + omega.mat/a^3/X.fun(a,model.name)
-	res <- H0*res
+	res <- omega.mat/a^3*(1.0+1.0/X.fun(a,model.name))
+	res <- H0*sqrt(res)
 	return(res)
 }
 
@@ -191,7 +242,7 @@ w.model <-function(a1,model.name)
    # a1 viene en logaritmo, por la integral	
    a=exp(a1)
    if(model.name == "lcdm") {
-      w.phi=-1.0
+      w.phi=-1.0 + a*0.0
    }else{
       w0<-tmodel[model.name,]$w0
       wm<-tmodel[model.name,]$wm
@@ -209,10 +260,8 @@ w.model <-function(a1,model.name)
    return(w.phi)
 }
 
-#integrado en el growfactor para cada modelo
-evol.grow.G <- function(model.name) 
+evol.grow.G <- function(atimes,model.name) 
 {
-        atimes <- seq(0.001, 1, length = 301)
 	xstart <- c(D =0.1, Dprime =1.0) #condiciones iniciales para el factor de 
 	                            #crecimiento y sus derivadas
         out <- ode(xstart,atimes,dgrow.G,model.name,method=rkMethod("rk45f"))
@@ -226,11 +275,11 @@ dgrow.G <- function(a,yfunc,model.name)
 {
          with(as.list(c(yfunc)), {
          dD <- Dprime
-	 ### guarda!!! muchos cambios en w.model chechear
-	 #xfun come lineal
-	 #w come log
-         dDprime <- -(7/2-3/2*w.model(a,model.name)/(1+X.fun(a,model.name)))*Dprime/a
-	 dDprime <- dDprime -3/2*(1-w.model(a,model.name))/(1+X.fun(a,model.name))*D/a/a
+	 #X.fun come lineal
+	 #w.model come log
+	 alog=log(a)
+         dDprime <- -(7/2-3/2*w.model(alog,model.name)/(1+X.fun(a,model.name)))*Dprime/a
+	 dDprime <- dDprime -3/2*(1-w.model(alog,model.name))/(1+X.fun(a,model.name))*D/a/a
          res <- c(dD, dDprime)
          return(list(res))
        })
