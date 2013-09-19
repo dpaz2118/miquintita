@@ -218,7 +218,7 @@ plot.dgrow <- function(model.name,new.dev)
 plot.dprimegrow <- function(model.name,new.dev)
 {
 
- z <- seq(0., 0.5, length = 101)
+ z <- seq(0., 1.0, length = 101)
  a <- 1/(1+z)
  a <- rev(a)
  z <- rev(z)
@@ -232,8 +232,8 @@ plot.dprimegrow <- function(model.name,new.dev)
     d <- evol.growprime.G(a,model.name)
     d <- d/dl
     plot(z, d, type = "l",
-	 xlab="z",ylab="dDda/D",
-	 xaxt = "n",yaxt="n", lty=lsty[model.name,],ylim=c(0.9,1.3))
+	 xlab="z",ylab="dDda/D Normalizado a LCDM",
+	 xaxt = "n",yaxt="n", lty=lsty[model.name,],ylim=c(0.7,1.1))
     eaxis(1)
     eaxis(2)
     eaxis(3,labels=FALSE)
@@ -304,10 +304,14 @@ evol.grow.G <- function(atimes,model.name)
 {
 	xstart <- c(D =0.1, Dprime =1.0) #condiciones iniciales para el factor de 
 	                            #crecimiento y sus derivadas
-        out <- ode(xstart,atimes,dgrow.G,model.name,method=rkMethod("rk45f"))
+	at=c(0.001,atimes)
+        out <- ode(xstart,at,dgrow.G,model.name,method=rkMethod("rk45f"))
 	sld <- as.data.frame(out)
 	a=sld$time
 	dfact=sld$D*a
+	nn=length(dfact)
+	dfact=dfact[2:nn]
+
 	return(dfact)
 }
 
@@ -315,11 +319,14 @@ evol.growprime.G <- function(atimes,model.name)
 {
 	xstart <- c(D =0.1, Dprime =1.0) #condiciones iniciales para el factor de 
 	                            #crecimiento y sus derivadas
-        out <- ode(xstart,atimes,dgrow.G,model.name,method=rkMethod("rk45f"))
+	at=c(0.001,atimes)
+        out <- ode(xstart,at,dgrow.G,model.name,method=rkMethod("rk45f"))
 	sld <- as.data.frame(out)
 	a <- sld$time
 	dfact <- sld$D + a*sld$Dprime
 	dfact <- dfact/(sld$D*a)
+	nn=length(dfact)
+	dfact=dfact[2:nn]
 	return(dfact)
 }
 
