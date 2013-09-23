@@ -10,9 +10,12 @@ assign("tmodel",tmodel, envir = .GlobalEnv)
 
 #estilo de linea para cada modelo
 lsty <- matrix(c(1,2,3,4,5,6,7),ncol=1)
-rownames(lsty)=c("lcdm","inv1","inv2","sugra","exp2","as","cnr")
+rownames(lsty)=c("lcdm","sugra","inv1","inv2","exp2","as","cnr")
 lsty <- as.data.frame(lsty)
 assign("lsty",lsty, envir = .GlobalEnv)
+#color de linea para cada modelo
+coll <- matrix(c("black","red","blue","orange","cyan","yellow","gray"),ncol=1)
+assign("coll",coll, envir = .GlobalEnv)
 
 #parametro de densidad de materia
 assign("omega.mat",0.26, envir = .GlobalEnv)
@@ -24,7 +27,6 @@ assign("H0",76, envir = .GlobalEnv)
 #Graficos generales #######################
 plot.oall <- function(new.dev) 
 {
-  if(missing(new.dev)){new.dev=FALSE}
   plot.omega("cnr",new.dev)
   plot.omega("inv1")
   plot.omega("inv2")
@@ -37,7 +39,6 @@ plot.oall <- function(new.dev)
 
 plot.wall <- function(new.dev) 
 {
-  if(missing(new.dev)){new.dev=FALSE}
   plot.w("cnr",new.dev)
   plot.w("inv1")
   plot.w("inv2")
@@ -49,7 +50,6 @@ plot.wall <- function(new.dev)
 
 plot.Hall <- function(new.dev) 
 {
-  if(missing(new.dev)){new.dev=FALSE}
   plot.H("cnr",new.dev)
   plot.H("inv1")
   plot.H("inv2")
@@ -61,7 +61,6 @@ plot.Hall <- function(new.dev)
 
 plot.xall <- function(new.dev) 
 {
-  if(missing(new.dev)){new.dev=FALSE}
   plot.xfun("cnr",new.dev)
   plot.xfun("inv1")
   plot.xfun("inv2")
@@ -98,19 +97,20 @@ plot.w <- function(model.name,new.dev)
  a=seq(-2,0,0.01)
  a=10.0^a
 
- if(missing(new.dev)){new.dev=FALSE}
- if(attr(dev.cur(),"names")== "null device" || new.dev) {
-    dev.new()
+ nuevo=TRUE
+ if(missing(new.dev)){nuevo=FALSE; new.dev=dev.new}
+ if(attr(dev.cur(),"names")== "null device" || nuevo) {
+    new.dev()
     par(tcl=1)
     plot(a, w.model(log(a),model.name), type = "l",
 	 xlab="a",ylab="w(a)",
-	 xaxt = "n",yaxt="n", log = "x",lty=lsty[model.name,])
+	 xaxt = "n",yaxt="n", log = "x",lty=lsty[model.name,],lwd=2)
     eaxis(1,at=c(1E-2,1E-1,1))
     eaxis(2,small.mult=4)
     eaxis(3,labels=FALSE,at=c(1E-2,1E-1,1))
     eaxis(4,labels=FALSE)
  } else {
-    lines(a,w.model(log(a),model.name),lty=lsty[model.name,])
+    lines(a,w.model(log(a),model.name),lty=lsty[model.name,],lwd=2)
  }
 	
 }
@@ -121,9 +121,10 @@ plot.xfun <- function(model.name,new.dev)
  a=seq(-2,0,0.01)
  a=10.0^a
 
- if(missing(new.dev)){new.dev=FALSE}
- if(attr(dev.cur(),"names")== "null device" || new.dev) {
-    dev.new()
+ nuevo=TRUE
+ if(missing(new.dev)){nuevo=FALSE; new.dev=dev.new}
+ if(attr(dev.cur(),"names")== "null device" || nuevo) {
+    new.dev()
     par(tcl=1)
     plot(a, X.fun(a,model.name), type = "l",
 	 xlab="a",ylab="X(a)",
@@ -140,7 +141,6 @@ plot.xfun <- function(model.name,new.dev)
 
 plot.H <- function(model.name,new.dev) 
 {
-
  a=seq(-2,0,0.01)
  a=10.0^a
  z=1/a-1
@@ -148,9 +148,10 @@ plot.H <- function(model.name,new.dev)
  hl=hubble.par(a,"lcdm")
  #hl=sqrt(omega.mat/a/a/a+(1-omega.mat))*H0 #hubble.par(a,"lcdm")
 
- if(missing(new.dev)){new.dev=FALSE}
- if(attr(dev.cur(),"names")== "null device" || new.dev) {
-    dev.new()
+ nuevo=TRUE
+ if(missing(new.dev)){nuevo=FALSE; new.dev=dev.new}
+ if(attr(dev.cur(),"names")== "null device" || nuevo) {
+    new.dev()
     par(tcl=1)
     plot(z,hz/hl , type = "l",
 	 xlab="z",ylab="H/Hlcdm",
@@ -171,9 +172,10 @@ plot.omega <- function(model.name,new.dev)
  a=10.0^a
  om=omega.de(a,model.name)
 
- if(missing(new.dev)){new.dev=FALSE}
- if(attr(dev.cur(),"names")== "null device" || new.dev) {
-    dev.new()
+ nuevo=TRUE
+ if(missing(new.dev)){nuevo=FALSE; new.dev=dev.new}
+ if(attr(dev.cur(),"names")== "null device" || nuevo) {
+    new.dev()
     par(tcl=1)
     plot(a,om , type = "l",log="xy",
 	 xlab="a",ylab="omega.DE",
@@ -225,6 +227,8 @@ plot.dprimegrow <- function(model.name,new.dev)
 
  nuevo=TRUE
  dl <- evol.growprime.G(a,"lcdm")
+ stilo <- lsty[model.name,]
+ colo <- coll[stilo]
  if(missing(new.dev)){nuevo=FALSE; new.dev=dev.new}
  if(attr(dev.cur(),"names")== "null device" || nuevo) {
     new.dev()
@@ -232,8 +236,8 @@ plot.dprimegrow <- function(model.name,new.dev)
     d <- evol.growprime.G(a,model.name)
     d <- d/dl
     plot(z, d, type = "l",
-	 xlab="z",ylab="dDda/D Normalizado a LCDM",
-	 xaxt = "n",yaxt="n", lty=lsty[model.name,],ylim=c(0.7,1.1))
+	 xlab="z",ylab="dDda*H/D - Normalizado a LCDM",
+	 xaxt = "n",yaxt="n", lty=stilo,ylim=c(0.9,1.02),lwd=2,col=colo)
     eaxis(1)
     eaxis(2)
     eaxis(3,labels=FALSE)
@@ -241,7 +245,7 @@ plot.dprimegrow <- function(model.name,new.dev)
  } else {
     d <- evol.growprime.G(a,model.name)
     d <- d/dl
-    lines(z,d,lty=lsty[model.name,])
+    lines(z,d,lty=stilo,lwd=2,col=colo)
  }
 	
 }
@@ -325,6 +329,7 @@ evol.growprime.G <- function(atimes,model.name)
 	a <- sld$time
 	dfact <- sld$D + a*sld$Dprime
 	dfact <- dfact/(sld$D*a)
+	dfact <- dfact*hubble.par(a,model.name)#*a^4
 	nn=length(dfact)
 	dfact=dfact[2:nn]
 	return(dfact)
